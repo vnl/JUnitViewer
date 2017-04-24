@@ -19,6 +19,7 @@ namespace JUV.JUnit.Model
 
         }
 
+        public List<JUnitTestCase> TestCases { get { return _testCases; } set { _testCases = value; } }
         public List<JUnitTestCase> GetTestCases()
         {
             return _testCases;

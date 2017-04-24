@@ -25,11 +25,13 @@ namespace JUV.JUnit.Parser
         private static readonly string TestCaseClassnameAttribute = "classname";
         private static readonly string TestCaseNameAttribute = "name";
         private static readonly string TestCaseTimeAttribute = "time";
+        private List<JUnitTestSuite> _tesSuitess;
 
         public JUnitParser()
         {
             _testSuite = new JUnitTestSuite();
             _testCases = new List<JUnitTestCase>();
+            _tesSuitess = new List<JUnitTestSuite>();
         }
 
         public JUnitTestSuite GetTestSuite()
@@ -90,6 +92,8 @@ namespace JUV.JUnit.Parser
                     XElement element = (XElement)node;
                     if (node.Name == TestSuiteNodeName)
                     {
+                        _testSuite = new JUnitTestSuite();
+                        _tesSuitess.Add(_testSuite);
                         _testSuite.SetName(element.Attribute(TestSuiteNameAttribute).ToString());
                         try
                         {
@@ -105,12 +109,36 @@ namespace JUV.JUnit.Parser
                             {
                                 _testSuite.SetSkipped(Int32.Parse(element.Attribute(SkippedNodeName).Value.ToString()));
                             }
+
+                            if (node.Elements().Any())
+                            {
+                                _testSuite.TestCases = ParseTestCases(node.Elements());
+                            }
                         }
                         catch (FormatException e)
                         {
                             throw new Exception("ERROR: Not able to parse attribute: " + e.Message + "! Please check your input file format");
                         }
                     }
+
+                    
+                }
+
+                
+            }
+        }
+
+        private List<JUnitTestCase> ParseTestCases(IEnumerable<XElement> nodes)
+        {
+            var testCases = new List<JUnitTestCase>();
+
+            for (int i = 0; i < nodes.Count(); i++)
+            {
+                XElement node = nodes.ElementAt(i);
+
+                if (node.NodeType.ToString() == "Element")
+                {
+                    XElement element = (XElement)node;
 
                     if (node.Name == (TestCaseNodeName))
                     {
@@ -124,10 +152,12 @@ namespace JUV.JUnit.Parser
                         {
                             testStep = SetFailureMessage(testStep, element);
                             testCase.AddTestStep(testStep);
-                            _testCases.Add(testCase);
-                        } else {
+                            testCases.Add(testCase);
+                        }
+                        else
+                        {
                             bool exists = false;
-                            foreach (JUnitTestCase tCase in _testCases)
+                            foreach (JUnitTestCase tCase in testCases)
                             {
                                 if (tCase.GetClassName() == testCase.GetClassName())
                                 {
@@ -141,17 +171,13 @@ namespace JUV.JUnit.Parser
                             {
                                 testStep = SetFailureMessage(testStep, element);
                                 testCase.AddTestStep(testStep);
-                                _testCases.Add(testCase);
+                                testCases.Add(testCase);
                             }
                         }
                     }
                 }
-
-                if (node.Elements().Any())
-                {
-                    ParseJUnitResults(node.Elements());
-                }
             }
+            return testCases;
         }
     }
 }
